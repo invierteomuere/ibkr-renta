@@ -2,7 +2,7 @@
 
 Analizador fiscal para la declaración de la renta española (ejercicio 2025) a partir de los CSV de **Interactive Brokers**.
 
-🔗 **[Abrir la aplicación](https://TU_USUARIO.github.io/ibkr-renta)**
+🔗 **[Abrir la aplicación](https://invierteomuere.github.io/ibkr-renta)**
 
 ---
 
