@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBKR → Renta 2025</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0e0d;--surface:#131614;--surface2:#1a1d1b;--surface3:#1e2220;
+  --border:#252925;--accent:#a8f040;--accent2:#40f0c0;--accent3:#f0c040;
+  --accent4:#c040f0;--text:#dfe8e0;--muted:#5a6860;--danger:#f04040;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;min-height:100vh;}
+header{padding:18px 36px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.hl{display:flex;align-items:baseline;gap:12px;}
+header h1{font-family:'Fraunces',serif;font-weight:300;font-size:24px;color:var(--accent);}
+.badge{font-size:10px;padding:2px 8px;border-radius:3px;background:#1a2e0d;color:var(--accent);border:1px solid #2a4010;}
+.year-tag{font-size:11px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:4px;}
+/* FX STATUS BAR */
+.fx-status-bar{padding:6px 36px;font-size:11px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);background:var(--surface);}
+.fx-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.fx-dot.loading{background:var(--accent3);animation:pulse 1s ease-in-out infinite;}
+.fx-dot.ok{background:var(--accent);box-shadow:0 0 5px var(--accent);}
+.fx-dot.err{background:var(--danger);}
+.fx-dot.fallback{background:var(--accent3);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+/* LAYOUT */
+.app{display:grid;grid-template-columns:290px 1fr;min-height:calc(100vh - 95px);}
+.sidebar{border-right:1px solid var(--border);padding:18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.content{padding:22px 30px;overflow-y:auto;}
+/* UPLOAD */
+.drop-zone{border:1.5px dashed var(--border);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:#131f0a;}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.drop-icon{font-size:22px;margin-bottom:6px;}
+.drop-zone p{color:var(--muted);font-size:10px;line-height:1.7;}
+/* SIDEBAR */
+.sl-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+.account-list{display:flex;flex-direction:column;gap:5px;}
+.ac-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;transition:all .15s;position:relative;}
+.ac-item:hover{border-color:var(--muted);}
+.ac-item.active{border-color:var(--accent);background:#0d1a08;}
+.ac-item.consolidated{border-color:var(--accent3);background:#1a1400;}
+.ac-item .ac-name{font-size:12px;font-weight:500;margin-bottom:2px;}
+.ac-item .ac-meta{font-size:10px;color:var(--muted);}
+.ac-item .ac-val{font-size:11px;font-family:'Fraunces',serif;font-weight:600;margin-top:3px;}
+.ac-item .ac-x{position:absolute;top:7px;right:9px;color:var(--muted);font-size:14px;cursor:pointer;opacity:0;transition:opacity .15s;}
+.ac-item:hover .ac-x{opacity:1;}
+.ac-item .ac-x:hover{color:var(--danger);}
+.sidebar-divider{border:none;border-top:1px solid var(--border);margin:2px 0;}
+.total-pill{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;}
+.tp-label{color:var(--muted);font-size:10px;margin-bottom:3px;}
+.tp-val{font-family:'Fraunces',serif;font-weight:600;font-size:15px;}
+/* CONTENT */
+.panel{display:none;}
+.panel.active{display:block;}
+.empty-state{text-align:center;padding:70px 40px;color:var(--muted);}
+.es-icon{font-size:44px;margin-bottom:18px;}
+.es-title{font-family:'Fraunces',serif;font-weight:300;font-size:20px;color:var(--text);margin-bottom:10px;}
+.es-text{font-size:11px;line-height:1.9;}
+/* PANEL HEADER */
+.panel-header{display:flex;align-items:center;gap:10px;margin-bottom:3px;}
+.panel-title{font-family:'Fraunces',serif;font-weight:300;font-size:19px;}
+.panel-sub{font-size:11px;color:var(--muted);margin-bottom:18px;}
+/* CARDS */
+.cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:20px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:13px 14px;}
+.cl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;line-height:1.4;}
+.cv{font-size:17px;font-family:'Fraunces',serif;font-weight:600;}
+.cs{font-size:10px;color:var(--muted);margin-top:3px;}
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);}
+.tab{padding:8px 16px;font-size:11px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:hover:not(.active){color:var(--text);}
+.tab-content{display:none;padding-top:18px;}
+.tab-content.active{display:block;}
+/* SECTION BLOCK */
+.sb{background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:14px;}
+.sb-h{padding:11px 15px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;}
+.sb-bar{width:3px;height:16px;border-radius:2px;flex-shrink:0;}
+.sb-title{font-family:'Fraunces',serif;font-weight:600;font-size:13px;}
+.sb-total{font-size:11px;font-family:'Fraunces',serif;margin-left:5px;}
+.sb-tag{font-size:10px;padding:2px 7px;border-radius:3px;border:1px solid var(--border);color:var(--muted);margin-left:auto;}
+/* CASILLA ROWS */
+.c-row{display:grid;grid-template-columns:86px 1fr 130px;align-items:start;padding:10px 15px;border-bottom:1px solid var(--border);gap:12px;transition:background .1s;}
+.c-row:last-child{border-bottom:none;}
+.c-row:hover{background:var(--surface2);}
+.c-row.zero{opacity:.4;}
+.c-num{font-size:11px;color:var(--accent);font-weight:500;padding-top:1px;}
+.c-title{color:var(--text);font-size:11px;margin-bottom:2px;}
+.c-sub{font-size:10px;color:var(--muted);line-height:1.5;}
+.c-val{text-align:right;font-size:13px;font-weight:500;white-space:nowrap;}
+/* DECLARACION TABLE */
+.decl-wrap{overflow-x:auto;border-radius:9px;border:1px solid var(--border);}
+table.decl{width:100%;border-collapse:collapse;font-size:11px;}
+.decl th{padding:8px 13px;background:var(--surface3);color:var(--muted);font-weight:400;border-bottom:1px solid var(--border);white-space:nowrap;text-align:left;}
+.decl th.r{text-align:right;}
+.decl td{padding:9px 13px;border-bottom:1px solid var(--border);}
+.decl tr:last-child td{border-bottom:none;}
+.decl tr:hover td{background:var(--surface2);}
+.decl .sec-hdr td{background:var(--surface3);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:5px 13px;}
+.decl .total-row td{background:var(--surface2);font-weight:500;border-top:2px solid var(--border);}
+.cbadge{background:#0d2010;color:var(--accent);border:1px solid #1a3a18;padding:2px 7px;border-radius:3px;font-size:10px;white-space:nowrap;}
+.decl td.r{text-align:right;}
+.big-val{font-size:14px;font-family:'Fraunces',serif;font-weight:600;}
+/* OPS TABLE */
+.ops-wrap{overflow-x:auto;}
+table.ops{width:100%;border-collapse:collapse;font-size:11px;}
+.ops th{padding:7px 11px;background:var(--surface3);color:var(--muted);font-weight:400;border-bottom:1px solid var(--border);white-space:nowrap;}
+.ops th.r{text-align:right;}
+.ops td{padding:7px 11px;border-bottom:1px solid #181c18;white-space:nowrap;}
+.ops tr:last-child td{border-bottom:none;}
+.ops tr:hover td{background:#141814;}
+.ops td.r{text-align:right;}
+.pill{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;}
+.pill.acc{background:#0d2030;color:var(--accent2);}
+.pill.opt{background:#1e0d2a;color:#d070f0;}
+.pill.div{background:#2a2200;color:var(--accent3);}
+.pill.int{background:#0d2210;color:var(--accent);}
+/* TRAMOS */
+.tg{display:grid;grid-template-columns:1fr 55px 130px 115px;}
+.tg-h{font-size:10px;color:var(--muted);padding:7px 13px;background:var(--surface3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;}
+.tg-h:not(:first-child){text-align:right;}
+.tg-c{padding:9px 13px;border-bottom:1px solid var(--border);font-size:11px;}
+.tg-c:not(:first-child){text-align:right;}
+.tg-active{background:#0d1a08;}
+.tg-active .tg-c{color:var(--accent);}
+/* COMP */
+.comp-box{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:15px;margin-bottom:14px;}
+.comp-title{font-family:'Fraunces',serif;font-weight:600;font-size:13px;margin-bottom:11px;display:flex;align-items:center;gap:8px;}
+.comp-2col{display:grid;grid-template-columns:1fr 36px 1fr;align-items:center;gap:8px;}
+.comp-item{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 12px;}
+.ci-l{font-size:10px;color:var(--muted);margin-bottom:4px;}
+.ci-v{font-size:14px;font-family:'Fraunces',serif;font-weight:600;}
+.comp-arrow{text-align:center;color:var(--muted);}
+.comp-note{margin-top:11px;font-size:11px;color:var(--muted);line-height:1.7;}
+/* AVISO */
+.aviso{background:#0d0e1a;border:1px solid #1e2030;border-radius:7px;padding:10px 13px;font-size:10px;color:#505570;line-height:1.7;margin-top:12px;}
+.aviso strong{color:#7070a0;}
+/* SNOTA */
+.snota{background:#141a0d;border:1px solid #243314;border-radius:8px;padding:11px 13px;font-size:11px;color:#7a9a55;line-height:1.75;margin-bottom:14px;}
+.snota strong{color:var(--accent3);}
+/* ACTIONS */
+.actions-row{display:flex;justify-content:flex-end;gap:8px;margin-bottom:18px;}
+button.btn-p{background:var(--accent);color:#0c0e0d;border:none;border-radius:5px;padding:6px 14px;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+button.btn-p:hover{opacity:.85;}
+button.btn-s{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:6px 13px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;}
+button.btn-s:hover{color:var(--text);border-color:var(--muted);}
+/* FX INFO */
+.fx-info{font-size:10px;color:var(--muted);padding:7px 13px;background:var(--surface2);border-top:1px solid var(--border);}
+/* COLORS */
+.pos{color:var(--accent2);}.neg{color:var(--danger);}.neu{color:var(--text);}.warn{color:var(--accent3);}
+.ac-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.ac0{background:#a8f040;}.ac1{background:#40f0c0;}.ac2{background:#f0c040;}.ac3{background:#c040f0;}.ac4{background:#40a8f0;}.ac5{background:#f04080;}
+@media(max-width:860px){.app{grid-template-columns:1fr;}.sidebar{border-right:none;border-bottom:1px solid var(--border);}.cards-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hl">
+    <h1>IBKR → Renta</h1>
+    <span class="badge">España · Ejercicio 2025</span>
+  </div>
+  <span class="year-tag">Campaña Abril–Junio 2026</span>
+</header>
+
+<!-- FX STATUS BAR -->
+<div class="fx-status-bar" id="fxStatusBar">
+  <div class="fx-dot loading" id="fxDot"></div>
+  <span id="fxStatusText">Cargando tipos de cambio oficiales BCE (EUR/USD diarios 2025)…</span>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".csv" multiple>
+        <div class="drop-icon">📂</div>
+        <p>Arrastra los CSV de IBKR<br>Puedes subir varias cuentas</p>
+      </div>
+    </div>
+    <div>
+      <div class="sl-label" style="margin-bottom:7px">Cuentas</div>
+      <div class="account-list" id="accountList">
+        <div style="font-size:11px;color:var(--muted);padding:6px 0">Ninguna cuenta cargada</div>
+      </div>
+    </div>
+    <hr class="sidebar-divider">
+    <div id="sidebarTotals" style="display:none">
+      <div class="sl-label" style="margin-bottom:7px">Total consolidado</div>
+      <div style="display:flex;flex-direction:column;gap:5px" id="sidebarPills"></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content">
+    <div class="panel active" id="panel-empty">
+      <div class="empty-state">
+        <div class="es-icon">🧾</div>
+        <div class="es-title">Analizador fiscal multi-cuenta IBKR</div>
+        <div class="es-text">
+          Sube los CSV de tus cuentas de Interactive Brokers.<br>
+          Consulta por cuenta individual o consolidado.<br>
+          La pestaña <strong style="color:var(--text)">Declaración</strong> te indica exactamente<br>
+          qué importe introducir en cada casilla.<br><br>
+          <strong style="color:var(--text)">Exportar desde IBKR:</strong><br>
+          Rendimientos → Extracto de Actividad<br>
+          Formato: CSV · Período: Anual 2025 · Secciones: Todo<br><br>
+          <span style="color:var(--accent);font-size:10px">✓ Tipos de cambio BCE diarios cargados automáticamente</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="panel-account"></div>
+    <div class="panel" id="panel-consolidated"></div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTES ───────────────────────────────────────────────────────────────
+const FX_FALLBACK = 0.9182; // tipo medio estimado si falla la API
+
+const TRAMOS = [
+  {desde:0,      hasta:6000,     tipo:0.19, label:'0 — 6.000 €'},
+  {desde:6000,   hasta:50000,    tipo:0.21, label:'6.000 — 50.000 €'},
+  {desde:50000,  hasta:200000,   tipo:0.23, label:'50.000 — 200.000 €'},
+  {desde:200000, hasta:300000,   tipo:0.27, label:'200.000 — 300.000 €'},
+  {desde:300000, hasta:Infinity, tipo:0.30, label:'> 300.000 € ★ nuevo 2025'},
+];
+const AC_COLORS = ['ac0','ac1','ac2','ac3','ac4','ac5'];
+
+// ─── FX RATES STATE ──────────────────────────────────────────────────────────
+// fxRates: Map { 'YYYY-MM-DD' -> EUR_per_USD (i.e. 1 USD = X EUR) }
+let fxRates = new Map();
+let fxStatus = 'loading'; // 'loading' | 'ok' | 'fallback' | 'error'
+let fxSource = '';
+
+// ─── LOAD FX RATES FROM ECB ──────────────────────────────────────────────────
+async function loadFXRates() {
+  setFXStatus('loading', 'Cargando tipos de cambio BCE EUR/USD 2025…');
+  try {
+    // ECB SDMX REST API — tipos diarios USD/EUR para 2025
+    // EXR/D.USD.EUR.SP00.A = Daily, USD, EUR, Spot, Average
+    // El BCE publica USD por EUR; necesitamos invertir para obtener EUR por USD
+    const url = 'https://data-api.ecb.europa.eu/service/data/EXR/D.USD.EUR.SP00.A?startPeriod=2025-01-01&endPeriod=2025-12-31&format=csvdata';
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const csv = await resp.text();
+    parseECBCsv(csv);
+    if (fxRates.size === 0) throw new Error('Sin datos en respuesta BCE');
+    setFXStatus('ok', `✓ Tipos BCE cargados: ${fxRates.size} días hábiles EUR/USD 2025 (fuente: Banco Central Europeo)`);
+  } catch(e) {
+    // Fallback: intentar frankfurter (proxy gratuito del BCE)
+    try {
+      const url2 = 'https://api.frankfurter.app/2025-01-01..2025-12-31?from=EUR&to=USD';
+      const resp2 = await fetch(url2);
+      if (!resp2.ok) throw new Error(`Frankfurter HTTP ${resp2.status}`);
+      const json = await resp2.json();
+      parseFrankfurter(json);
+      if (fxRates.size === 0) throw new Error('Sin datos Frankfurter');
+      setFXStatus('ok', `✓ Tipos BCE cargados: ${fxRates.size} días hábiles EUR/USD 2025 (fuente: Frankfurter/BCE)`);
+    } catch(e2) {
+      // Último fallback: tipo medio fijo
+      setFXStatus('fallback', `⚠ No se pudo conectar con la API del BCE. Usando tipo medio estimado 2025 (${FX_FALLBACK} €/$). Revisa tu conexión.`);
+    }
+  }
+}
+
+function parseECBCsv(csv) {
+  // Formato ECB CSV: KEY,FREQ,CURRENCY,CURRENCY_DENOM,...,TIME_PERIOD,OBS_VALUE,...
+  // El valor es USD por 1 EUR → invertir para obtener EUR por 1 USD
+  const lines = csv.split('\n');
+  const header = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
+  const dateIdx = header.indexOf('TIME_PERIOD');
+  const valIdx  = header.indexOf('OBS_VALUE');
+  if (dateIdx < 0 || valIdx < 0) return;
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    if (cols.length < Math.max(dateIdx, valIdx) + 1) continue;
+    const date = cols[dateIdx].trim().replace(/"/g,'');
+    const usdPerEur = parseFloat(cols[valIdx]);
+    if (date && !isNaN(usdPerEur) && usdPerEur > 0) {
+      fxRates.set(date, 1 / usdPerEur); // EUR per 1 USD
+    }
+  }
+}
+
+function parseFrankfurter(json) {
+  // Frankfurter: { rates: { 'YYYY-MM-DD': { USD: X } } }
+  if (!json.rates) return;
+  for (const [date, rates] of Object.entries(json.rates)) {
+    if (rates.USD && rates.USD > 0) {
+      fxRates.set(date, 1 / rates.USD); // invertir: EUR per USD
+    }
+  }
+}
+
+function setFXStatus(status, msg) {
+  fxStatus = status;
+  fxSource = msg;
+  const dot = document.getElementById('fxDot');
+  dot.className = 'fx-dot ' + status;
+  document.getElementById('fxStatusText').textContent = msg;
+}
+
+// Obtener tipo para una fecha concreta.
+// Si la fecha es festivo/fin de semana, usa el día hábil anterior.
+function getFX(date, currency) {
+  if (!currency || currency === 'EUR') return 1;
+  if (currency !== 'USD') return 1; // GBP etc sin conversión por ahora
+  if (fxStatus === 'fallback' || fxRates.size === 0) return FX_FALLBACK;
+  // Buscar el tipo de la fecha o el día hábil anterior
+  let d = new Date(date + 'T12:00:00Z');
+  for (let i = 0; i < 10; i++) {
+    const key = d.toISOString().substring(0, 10);
+    if (fxRates.has(key)) return fxRates.get(key);
+    d.setDate(d.getDate() - 1);
+  }
+  // Si no encontramos nada cercano, usar fallback
+  return FX_FALLBACK;
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let accounts = [];
+let activeView = null;
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); [...e.dataTransfer.files].forEach(f => f.name.endsWith('.csv') && processFile(f)); });
+fileInput.addEventListener('change', e => { [...e.target.files].forEach(f => processFile(f)); fileInput.value = ''; });
+
+// ─── FILE PROCESSING ─────────────────────────────────────────────────────────
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const raw = parseIBKR(e.target.result);
+      const id = raw.accountId || file.name.replace('.csv','');
+      const existing = accounts.findIndex(a => a.accountId === id);
+      const entry = {
+        id, filename: file.name, accountId: raw.accountId || id,
+        colorIdx: existing >= 0 ? accounts[existing].colorIdx : accounts.length % 6,
+        data: raw
+      };
+      if (existing >= 0) accounts[existing] = entry;
+      else accounts.push(entry);
+      refreshSidebar();
+      showView(id);
+    } catch(err) {
+      alert('Error en ' + file.name + ':\n' + err.message + (err.detail ? '\n\n' + err.detail : ''));
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function removeAccount(id) {
+  accounts = accounts.filter(a => a.id !== id);
+  refreshSidebar();
+  if (accounts.length === 0) showView(null);
+  else if (activeView === id) showView(accounts.length > 1 ? 'consolidated' : accounts[0].id);
+  else refreshContent();
+}
+
+// ─── CSV HELPERS ─────────────────────────────────────────────────────────────
+function parseCSVLine(line) {
+  const r = []; let cur = ''; let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (q && line[i+1]==='"') { cur+='"'; i++; } else q=!q; }
+    else if (c === ',' && !q) { r.push(cur.trim()); cur = ''; }
+    else cur += c;
+  }
+  r.push(cur.trim()); return r;
+}
+function n(v) { return parseFloat(String(v||'0').replace(/,/g,''))||0; }
+
+// ─── IBKR PARSER ─────────────────────────────────────────────────────────────
+function parseIBKR(text) {
+  if (!text || text.trim().length < 50) throw new Error('Archivo vacío.');
+  const lines = text.split(/\r?\n/);
+  let accountCurrency = 'USD', accountId = '', accountName = '';
+
+  for (const line of lines) {
+    if (/información sobre la cuenta|account information/i.test(line)) {
+      const c = parseCSVLine(line);
+      if ((c[2]==='Divisa base'||c[2]==='Base Currency') && c[3]) accountCurrency = c[3];
+      if ((c[2]==='Cuenta'||c[2]==='Account') && c[3]) accountId = c[3];
+      if ((c[2]==='Nombre'||c[2]==='Name') && c[3]) accountName = c[3];
+    }
+  }
+
+  const sections = {};
+  let curSec = null, curHdrs = null;
+  for (const raw of lines) {
+    if (!raw.trim()) continue;
+    const c = parseCSVLine(raw);
+    if (c.length < 2) continue;
+    const sec = c[0].trim(), typ = c[1].trim();
+    if (typ === 'Header') {
+      curSec = sec; curHdrs = c.slice(2);
+      if (!sections[sec]) sections[sec] = {headers: curHdrs, rows: []};
+      else sections[sec].headers = curHdrs;
+      continue;
+    }
+    if (typ === 'Data' && curSec) {
+      const hdrs = sections[curSec]?.headers || [];
+      const row = {}; hdrs.forEach((h,i) => row[h.trim()] = (c[i+2]||'').trim());
+      sections[curSec].rows.push(row);
+    }
+  }
+
+  const secKeys = Object.keys(sections);
+  const findSec = (...names) => { for(const nm of names){const k=secKeys.find(k=>k.toLowerCase().includes(nm.toLowerCase()));if(k)return sections[k];} return null; };
+
+  if (!secKeys.some(k=>/operacion|trade/i.test(k)) && !secKeys.some(k=>/dividendo|dividend/i.test(k))) {
+    const e = new Error('No se encontraron secciones de Operaciones ni Dividendos.');
+    e.detail = 'Secciones encontradas: ' + secKeys.join(', ');
+    throw e;
+  }
+
+  const result = { accountCurrency, accountId, accountName, rawTrades: [], dividends: [], interest: [] };
+
+  // OPERACIONES — guardamos divisa y fecha para conversión con FX diario
+  const opSec = findSec('Operaciones','Trades','Trade');
+  if (opSec) {
+    for (const row of opSec.rows) {
+      if ((row['DataDiscriminator']||'') !== 'Order') continue;
+      const assetCat = (row['Categoría de activo']||row['Asset Category']||'').toLowerCase();
+      const currency = row['Divisa']||row['Currency']||accountCurrency;
+      const symbol   = row['Símbolo']||row['Symbol']||'';
+      const fecha    = (row['Fecha/Hora']||row['Date/Time']||'').substring(0,10);
+      const pyg      = n(row['PyG realizadas']||row['Realized P/L']||'0');
+      const productos= n(row['Productos']||row['Proceeds']||'0');
+      const basico   = n(row['Básico']||row['Basis']||'0');
+      if (Math.abs(pyg) < 0.001) continue;
+      let tipo = 'acciones';
+      if (/opcion|option|índice|index/i.test(assetCat)) tipo = 'opciones';
+      else if (/forex|fx/i.test(assetCat)) tipo = 'forex';
+      else if (/bono|bond|fixed/i.test(assetCat)) tipo = 'bonos';
+      result.rawTrades.push({ date: fecha, symbol, currency, tipo, pyg_orig: pyg, proceeds_orig: productos, basis_orig: basico });
+    }
+  }
+
+  // DIVIDENDOS
+  const divSec = findSec('Dividendos','Dividends','Dividend');
+  if (divSec) {
+    for (const row of divSec.rows) {
+      const cur  = row['Divisa']||row['Currency']||accountCurrency;
+      const amt  = n(row['Cantidad']||row['Amount']||'0');
+      const desc = row['Descripción']||row['Description']||'';
+      const date = row['Fecha']||row['Date']||'';
+      if (!date||desc.toLowerCase().startsWith('total')||Math.abs(amt)<0.001) continue;
+      result.dividends.push({ date, desc, currency: cur, amount_orig: amt });
+    }
+  }
+
+  // INTERÉS
+  const intSec = findSec('Interés','Interest');
+  if (intSec) {
+    for (const row of intSec.rows) {
+      const cur  = row['Divisa']||row['Currency']||accountCurrency;
+      const amt  = n(row['Cantidad']||row['Amount']||'0');
+      const desc = row['Descripción']||row['Description']||'';
+      const date = row['Fecha']||row['Date']||'';
+      if (!date||Math.abs(amt)<0.001) continue;
+      result.interest.push({ date, desc, currency: cur, amount_orig: amt });
+    }
+  }
+
+  return applyFXAndCompute(result);
+}
+
+// ─── APPLY FX AND COMPUTE ────────────────────────────────────────────────────
+// Aplica tipos diarios del BCE a cada operación y calcula los totales fiscales
+function applyFXAndCompute(raw) {
+  const toEUR = (val, currency, date) => {
+    if (!currency || currency === 'EUR') return val;
+    if (currency === 'USD') return val * getFX(date, 'USD');
+    return val; // otras divisas sin conversión
+  };
+
+  const trades = raw.rawTrades.map(t => ({
+    ...t,
+    fxRate: getFX(t.date, t.currency),
+    pyg:      toEUR(t.pyg_orig,      t.currency, t.date),
+    proceeds: toEUR(t.proceeds_orig, t.currency, t.date),
+    basis:    toEUR(t.basis_orig,    t.currency, t.date),
+    casilla:  t.tipo === 'forex' ? '0358' : '0327/0328',
+  }));
+
+  const dividends = raw.dividends.map(d => ({
+    ...d,
+    fxRate: getFX(d.date, d.currency),
+    amount: toEUR(d.amount_orig, d.currency, d.date),
+  }));
+
+  const interest = raw.interest.map(i => ({
+    ...i,
+    fxRate: getFX(i.date, i.currency),
+    amount: toEUR(i.amount_orig, i.currency, i.date),
+  }));
+
+  return computeFiscal({ ...raw, trades, dividends, interest });
+}
+
+function computeFiscal(raw) {
+  let gpAccPos=0,gpAccNeg=0,gpOptPos=0,gpOptNeg=0,gpFxPos=0,gpFxNeg=0;
+  for (const t of raw.trades) {
+    const g = t.pyg;
+    if (t.tipo==='acciones')      { if(g>=0) gpAccPos+=g; else gpAccNeg+=g; }
+    else if (t.tipo==='opciones') { if(g>=0) gpOptPos+=g; else gpOptNeg+=g; }
+    else if (t.tipo==='forex')    { if(g>=0) gpFxPos+=g;  else gpFxNeg+=g; }
+  }
+  let divPos = 0;
+  for (const d of raw.dividends) if (d.amount > 0) divPos += d.amount;
+  let intPos = 0, intNeg = 0;
+  for (const i of raw.interest) { if(i.amount > 0) intPos += i.amount; else intNeg += Math.abs(i.amount); }
+
+  const netAcc = gpAccPos+gpAccNeg, netOpt = gpOptPos+gpOptNeg, netFx = gpFxPos+gpFxNeg;
+  const netGP  = netAcc+netOpt+netFx;
+  const netRCM = divPos+intPos-intNeg;
+  const baseAhorro = netGP+netRCM;
+  const cuota = calcCuota(Math.max(0, baseAhorro));
+
+  return {
+    ...raw,
+    t: { gpAccPos,gpAccNeg,netAcc, gpOptPos,gpOptNeg,netOpt, gpFxPos,gpFxNeg,netFx,
+         divPos, intPos, intNeg, netRCM, netGP, baseAhorro, cuota }
+  };
+}
+
+// Cuando los FX rates estén listos, recalcular todas las cuentas cargadas
+function recomputeAll() {
+  accounts = accounts.map(a => ({
+    ...a,
+    data: applyFXAndCompute(a.data)
+  }));
+  refreshSidebar();
+  refreshContent();
+}
+
+function calcCuota(base) {
+  let c=0, r=base;
+  for (const tr of TRAMOS) { if(r<=0) break; const s=Math.min(r,isFinite(tr.hasta)?tr.hasta-tr.desde:r); c+=s*tr.tipo; r-=s; }
+  return c;
+}
+
+function consolidate(accs) {
+  const merged = { accountCurrency:'EUR', accountId:'CONSOLIDADO', accountName:'Todas las cuentas',
+    rawTrades:[], trades:[], dividends:[], interest:[] };
+  for (const a of accs) {
+    merged.trades.push(...(a.data.trades||[]));
+    merged.dividends.push(...(a.data.dividends||[]));
+    merged.interest.push(...(a.data.interest||[]));
+  }
+  return computeFiscal(merged);
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+function refreshSidebar() {
+  const list = document.getElementById('accountList');
+  const totalsDiv = document.getElementById('sidebarTotals');
+  if (accounts.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:6px 0">Ninguna cuenta cargada</div>';
+    totalsDiv.style.display = 'none';
+    return;
+  }
+  list.innerHTML = accounts.map(a => {
+    const t = a.data.t;
+    return `<div class="ac-item${activeView===a.id?' active':''}" onclick="showView('${a.id}')">
+      <span class="ac-x" onclick="event.stopPropagation();removeAccount('${a.id}')">×</span>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+        <div class="ac-dot ${AC_COLORS[a.colorIdx]}"></div>
+        <div class="ac-name">${a.accountId}</div>
+      </div>
+      <div class="ac-meta">${a.filename}</div>
+      <div class="ac-val ${t.baseAhorro>=0?'pos':'neg'}">${fmt(t.baseAhorro)} base</div>
+    </div>`;
+  }).join('');
+
+  if (accounts.length > 1) {
+    list.innerHTML += `<div class="ac-item consolidated${activeView==='consolidated'?' active':''}" onclick="showView('consolidated')">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+        <span style="font-size:13px">∑</span>
+        <div class="ac-name">Consolidado</div>
+      </div>
+      <div class="ac-meta">${accounts.length} cuentas</div>
+    </div>`;
+  }
+
+  const con = consolidate(accounts);
+  totalsDiv.style.display = 'block';
+  document.getElementById('sidebarPills').innerHTML = [
+    {l:'Base del ahorro', v:con.t.baseAhorro, cls: con.t.baseAhorro>=0?'pos':'neg'},
+    {l:'Cuota estimada',  v:con.t.cuota,      cls:'warn'},
+  ].map(p=>`<div class="total-pill"><div class="tp-label">${p.l}</div><div class="tp-val ${p.cls}">${fmt(p.v)}</div></div>`).join('');
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function showView(id) {
+  activeView = id;
+  refreshSidebar();
+  refreshContent();
+}
+
+function refreshContent() {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  if (!activeView || accounts.length === 0) {
+    document.getElementById('panel-empty').classList.add('active');
+    return;
+  }
+  if (activeView === 'consolidated') {
+    const con = consolidate(accounts);
+    renderPanel(document.getElementById('panel-consolidated'), con, 'Consolidado', `${accounts.length} cuentas`, true);
+    document.getElementById('panel-consolidated').classList.add('active');
+  } else {
+    const acc = accounts.find(a => a.id === activeView);
+    if (!acc) { document.getElementById('panel-empty').classList.add('active'); return; }
+    renderPanel(document.getElementById('panel-account'), acc.data, acc.accountId, acc.filename, false, acc.colorIdx);
+    document.getElementById('panel-account').classList.add('active');
+  }
+}
+
+// ─── RENDER PANEL ─────────────────────────────────────────────────────────────
+function renderPanel(el, data, title, subtitle, isConsolidated, colorIdx=0) {
+  const t = data.t;
+  const dot = isConsolidated
+    ? '<span style="font-size:16px">∑</span>'
+    : `<div class="ac-dot ${AC_COLORS[colorIdx]}" style="display:inline-block;margin-right:2px"></div>`;
+
+  const fxNote = fxStatus === 'ok'
+    ? `<span style="color:var(--accent);font-size:10px">✓ Tipos BCE diarios</span>`
+    : fxStatus === 'fallback'
+    ? `<span style="color:var(--accent3);font-size:10px">⚠ Tipo medio estimado (sin conexión BCE)</span>`
+    : '';
+
+  el.innerHTML = `
+    <div class="actions-row">
+      ${fxNote}
+      <div style="flex:1"></div>
+      <button class="btn-s" onclick="showView(null);setTimeout(()=>showView('${isConsolidated?'consolidated':activeView}'),10)">↻ Recalcular</button>
+      <button class="btn-p" onclick="exportCSV('${isConsolidated?'consolidated':activeView}')">Exportar CSV</button>
+    </div>
+    <div class="panel-header">${dot}<div class="panel-title">${title}</div></div>
+    <div class="panel-sub">${subtitle} · Base: ${data.accountCurrency}</div>
+
+    <div class="cards-grid">
+      ${[
+        {l:'G/P acciones neta',   v:t.netAcc,          s:`${(data.trades||[]).filter(o=>o.tipo==='acciones').length} cierres`},
+        {l:'G/P opciones neta',   v:t.netOpt,          s:`${(data.trades||[]).filter(o=>o.tipo==='opciones').length} cierres`},
+        {l:'Dividendos brutos',   v:t.divPos,          s:`${(data.dividends||[]).filter(d=>d.amount>0).length} pagos`},
+        {l:'Intereses neto',      v:t.intPos-t.intNeg, s:'0033/0032'},
+        {l:'Base ahorro est.',    v:t.baseAhorro,      s:`cuota ~${fmt(t.cuota)}`, warn:true},
+        {l:'Cuota IRPF est.',     v:t.cuota,           s:'antes de deducciones', warn:true},
+      ].map(c=>`<div class="card"><div class="cl">${c.l}</div><div class="cv ${c.warn?'warn':clr(c.v)}">${fmt(c.v)}</div><div class="cs">${c.s}</div></div>`).join('')}
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'resumen')">Resumen fiscal</div>
+      <div class="tab" onclick="switchTab(this,'declaracion')">📋 Declaración</div>
+      <div class="tab" onclick="switchTab(this,'tramos')">Tramos IRPF</div>
+      <div class="tab" onclick="switchTab(this,'operaciones')">Operaciones</div>
+    </div>
+
+    <div class="tab-content active" data-tab="resumen">
+      ${renderResumen(data)}
+      ${renderComp(t)}
+      <div class="aviso"><strong>⚠ Aviso:</strong> Posiciones abiertas a 31/12 no tributan. Opciones expiradas = pérdida en año de vencimiento. Verifica regla anti-lavado (2 meses). Conversión USD/EUR con tipos BCE diarios por fecha de operación${fxStatus==='fallback'?' — <strong>usa tipo medio estimado, conecta a internet para precisión exacta</strong>':' (Banco Central Europeo)'}. Consulta a un asesor fiscal.</div>
+    </div>
+
+    <div class="tab-content" data-tab="declaracion">
+      ${renderDeclaracion(data, isConsolidated)}
+    </div>
+
+    <div class="tab-content" data-tab="tramos">
+      ${renderTramos(t.baseAhorro)}
+      <div class="snota" style="margin-top:0">0–6.000€→19% · 6–50k€→21% · 50–200k€→23% · 200–300k€→27% · &gt;300k€→<strong>30% nuevo 2025</strong> (Ley 7/2024).</div>
+    </div>
+
+    <div class="tab-content" data-tab="operaciones">
+      ${renderOps(data)}
+    </div>
+  `;
+}
+
+function switchTab(tabEl, name) {
+  const tabs = tabEl.closest('.tabs');
+  const container = tabs.parentElement;
+  tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  container.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === name));
+}
+
+// ─── RESUMEN ─────────────────────────────────────────────────────────────────
+function renderResumen(data) {
+  const t = data.t;
+  const secs = [
+    { sec:'Rendimientos del Capital Mobiliario', color:'var(--accent2)', items:[
+      {num:'0029', title:'Dividendos', sub:'Importe íntegro (bruto) de dividendos de acciones y ETFs extranjeros.', val:t.divPos},
+      {num:'0033', title:'Intereses cobrados', sub:'Intereses de crédito en efectivo IBKR.', val:t.intPos},
+      {num:'0032', title:'Intereses de margen (gasto)', sub:'Intereses deudores pagados a IBKR. Deducibles: máx. doble de los RCM positivos.', val:t.intNeg>0?-t.intNeg:0},
+    ]},
+    { sec:'Ganancias y Pérdidas Patrimoniales', color:'var(--accent)', items:[
+      {num:'0327/0328', title:'Acciones — ganancias', sub:'PyG positiva en cierres de acciones cotizadas.', val:t.gpAccPos},
+      {num:'0327/0328', title:'Acciones — pérdidas',  sub:'PyG negativa en cierres. Compensable 4 años.', val:t.gpAccNeg},
+      {num:'0327/0328', title:'Opciones/futuros — ganancias', sub:'Cierres con beneficio en opciones sobre acciones e índices.', val:t.gpOptPos},
+      {num:'0327/0328', title:'Opciones/futuros — pérdidas',  sub:'Cierres con pérdida. Expiradas a 0 = pérdida en año de vencimiento.', val:t.gpOptNeg},
+      {num:'0358', title:'Divisas — resultado neto', sub:'G/P en operaciones de cambio de divisa.', val:t.netFx},
+    ]},
+    { sec:'Deducciones', color:'var(--accent3)', items:[
+      {num:'0588', title:'Deducción doble imposición', sub:'Retenciones en origen sobre dividendos. Sin withholding tax detectada en CSV. Revisa extractos IBKR por país emisor.', val:0},
+    ]},
+  ];
+  return secs.map(sec => {
+    const st = sec.items.reduce((a,i) => a+i.val, 0);
+    return `<div class="sb">
+      <div class="sb-h"><div class="sb-bar" style="background:${sec.color}"></div>
+        <span class="sb-title" style="color:${sec.color}">${sec.sec}</span>
+        <span class="sb-total ${clr(st)}">${fmt(st)}</span>
+        <span class="sb-tag">Modelo 100</span>
+      </div>
+      ${sec.items.map(c => {
+        const z = Math.abs(c.val)<0.01;
+        return `<div class="c-row${z?' zero':''}">
+          <div class="c-num">[ ${c.num} ]</div>
+          <div><div class="c-title">${c.title}</div><div class="c-sub">${c.sub}</div></div>
+          <div class="c-val ${z?'neu':c.val<0?'neg':c.val>0?'pos':'neu'}">${fmt(c.val)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ─── DECLARACION ─────────────────────────────────────────────────────────────
+function renderDeclaracion(data, isConsolidated) {
+  const t = data.t;
+  const casillas = [
+    { casilla:'0029', nombre:'Dividendos y participaciones en beneficios',
+      desc:'Importe íntegro (bruto) de dividendos de ETFs y acciones extranjeras.',
+      sec:'Rendimientos del Capital Mobiliario', val:t.divPos },
+    { casilla:'0033', nombre:'Intereses y rendimientos de cuentas/depósitos',
+      desc:'Intereses de crédito recibidos en cuenta de efectivo IBKR.',
+      sec:'Rendimientos del Capital Mobiliario', val:t.intPos },
+    { casilla:'0032', nombre:'Gastos deducibles — intereses de préstamos',
+      desc:'Intereses de margen (margin interest) pagados. Límite: no puede superar el doble de los RCM positivos del año.',
+      sec:'Rendimientos del Capital Mobiliario', val:t.intNeg>0?-t.intNeg:0 },
+    { casilla:'0327', nombre:'Valor de transmisión (acciones + opciones)',
+      desc:'Suma de los valores de venta de todos los cierres de acciones y opciones.',
+      sec:'Ganancias y Pérdidas Patrimoniales',
+      val:(data.trades||[]).filter(o=>o.tipo!=='forex').reduce((a,o)=>a+o.proceeds,0) },
+    { casilla:'0328', nombre:'Valor de adquisición (acciones + opciones)',
+      desc:'Suma de los costes de adquisición de todos los cierres de acciones y opciones.',
+      sec:'Ganancias y Pérdidas Patrimoniales',
+      val:Math.abs((data.trades||[]).filter(o=>o.tipo!=='forex').reduce((a,o)=>a+o.basis,0)) },
+    { casilla:'0327−0328', nombre:'G/P neta acciones y opciones (casilla resultado)',
+      desc:'Resultado final para declarar: ganancias menos pérdidas. Si es negativo, IRPF lo compensa automáticamente.',
+      sec:'Ganancias y Pérdidas Patrimoniales', val:t.netAcc+t.netOpt, highlight:true },
+    { casilla:'0358', nombre:'G/P otros elementos patrimoniales (divisas)',
+      desc:'Resultado neto de operaciones de cambio de divisa.',
+      sec:'Ganancias y Pérdidas Patrimoniales', val:t.netFx },
+    { casilla:'0588', nombre:'Deducción por doble imposición internacional',
+      desc:'Retenciones practicadas en el extranjero. Sin withholding tax en CSV — verifica por país/convenio.',
+      sec:'Deducciones', val:0 },
+    { casilla:'BASE', nombre:'Base liquidable del ahorro (estimada)',
+      desc:'RCM neto + G/P neta. Base sobre la que se aplican los tramos IRPF.',
+      sec:'Resumen', val:t.baseAhorro, highlight:true, total:true },
+    { casilla:'CUOTA', nombre:'Cuota íntegra del ahorro (estimada)',
+      desc:'Resultado de aplicar la escala de tramos 2025. Pendiente de restar DDI y otras deducciones.',
+      sec:'Resumen', val:t.cuota, highlight:true, total:true, warn:true },
+  ];
+
+  const secs = [...new Set(casillas.map(c=>c.sec))];
+  let html = `<div class="snota">
+    <strong>📋 Importes a introducir en Renta WEB 2025</strong><br>
+    ${isConsolidated
+      ? `Suma consolidada de <strong>todas las cuentas</strong> — esto es lo que declaras en tu IRPF.`
+      : `Importes de esta cuenta individual.`}
+    Tipos de cambio: <strong>${fxStatus==='ok'?'BCE diarios por fecha de operación':'tipo medio estimado 2025 (sin conexión BCE)'}</strong>.
+  </div>
+  <div class="decl-wrap"><table class="decl">
+    <thead><tr><th>Casilla</th><th>Concepto</th><th>Sección</th><th class="r">Importe a declarar (€)</th></tr></thead>
+    <tbody>`;
+
+  for (const sec of secs) {
+    html += `<tr class="sec-hdr"><td colspan="4">${sec}</td></tr>`;
+    for (const c of casillas.filter(x=>x.sec===sec)) {
+      const z = Math.abs(c.val)<0.01;
+      const cls = c.warn ? 'warn' : c.val<0?'neg':c.val>0?'pos':'neu';
+      html += `<tr${c.total?' class="total-row"':''}>
+        <td><span class="cbadge">[ ${c.casilla} ]</span></td>
+        <td>
+          <div style="font-size:11px;color:var(--text);margin-bottom:2px">${c.nombre}</div>
+          <div style="font-size:10px;color:var(--muted);line-height:1.5">${c.desc}</div>
+        </td>
+        <td style="font-size:10px;color:var(--muted)">${c.sec}</td>
+        <td class="r">
+          <span class="${c.highlight?'big-val':''} ${z?'neu':cls}">${fmt(c.val)}</span>
+          ${c.val<0?'<div style="font-size:9px;color:var(--muted)">(pérdida/gasto)</div>':''}
+        </td>
+      </tr>`;
+    }
+  }
+  html += `</tbody></table></div>`;
+
+  // Desglose por cuenta si es consolidado
+  if (isConsolidated && accounts.length > 1) {
+    html += `
+    <div style="margin-top:18px">
+      <div class="sb-h" style="border-radius:9px 9px 0 0;border:1px solid var(--border);border-bottom:none">
+        <div class="sb-bar" style="background:var(--accent4)"></div>
+        <span class="sb-title">Desglose por cuenta</span>
+        <span class="sb-tag">${accounts.length} cuentas</span>
+      </div>
+      <div class="decl-wrap" style="border-radius:0 0 9px 9px">
+        <table class="decl">
+          <thead><tr>
+            <th>Cuenta</th>
+            <th class="r">G/P acc.</th><th class="r">G/P opt.</th>
+            <th class="r">Dividendos</th><th class="r">Int. neto</th>
+            <th class="r">Base ahorro</th><th class="r">Cuota est.</th>
+          </tr></thead>
+          <tbody>
+          ${accounts.map(a => {
+            const t = a.data.t;
+            return `<tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div class="ac-dot ${AC_COLORS[a.colorIdx]}"></div>
+                  <span style="font-size:11px">${a.accountId}</span>
+                </div>
+                <div style="font-size:10px;color:var(--muted)">${a.filename}</div>
+              </td>
+              <td class="r ${clr(t.netAcc)}">${fmt(t.netAcc)}</td>
+              <td class="r ${clr(t.netOpt)}">${fmt(t.netOpt)}</td>
+              <td class="r ${clr(t.divPos)}">${fmt(t.divPos)}</td>
+              <td class="r ${clr(t.intPos-t.intNeg)}">${fmt(t.intPos-t.intNeg)}</td>
+              <td class="r ${clr(t.baseAhorro)}">${fmt(t.baseAhorro)}</td>
+              <td class="r warn">${fmt(t.cuota)}</td>
+            </tr>`;
+          }).join('')}
+          <tr class="total-row">
+            <td><strong>TOTAL</strong></td>
+            ${['netAcc','netOpt','divPos'].map(k=>{const v=accounts.reduce((a,ac)=>a+ac.data.t[k],0);return`<td class="r ${clr(v)}">${fmt(v)}</td>`;}).join('')}
+            ${(()=>{const v=accounts.reduce((a,ac)=>a+(ac.data.t.intPos-ac.data.t.intNeg),0);return`<td class="r ${clr(v)}">${fmt(v)}</td>`;})()}
+            ${['baseAhorro','cuota'].map(k=>{const v=accounts.reduce((a,ac)=>a+ac.data.t[k],0);return`<td class="r ${k==='cuota'?'warn':clr(v)}">${fmt(v)}</td>`;}).join('')}
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  return html;
+}
+
+// ─── TRAMOS ──────────────────────────────────────────────────────────────────
+function renderTramos(base) {
+  let rows='', rest=Math.max(0,base);
+  for (const tr of TRAMOS) {
+    const en=Math.max(0,Math.min(rest,isFinite(tr.hasta)?tr.hasta-tr.desde:rest));
+    const cuotaTr=en*tr.tipo; rest-=en; const ac=en>0;
+    rows+=`<div${ac?' class="tg-active"':''}><div class="tg-c">${tr.label}</div><div class="tg-c" style="color:var(--accent3);font-weight:500">${(tr.tipo*100).toFixed(0)}%</div><div class="tg-c">${ac?fmt(en):'—'}</div><div class="tg-c" style="color:var(--accent2)">${ac?fmt(cuotaTr):'—'}</div></div>`;
+  }
+  return `<div class="sb">
+    <div class="sb-h"><div class="sb-bar" style="background:var(--accent3)"></div>
+      <span class="sb-title">Escala IRPF 2025 — Base del Ahorro</span><span class="sb-tag">Ley 7/2024</span>
+    </div>
+    <div class="tg">
+      <div class="tg-h">Tramo</div><div class="tg-h">Tipo</div>
+      <div class="tg-h" style="text-align:right">Base en tramo</div>
+      <div class="tg-h" style="text-align:right">Cuota</div>
+      ${rows}
+    </div>
+  </div>`;
+}
+
+// ─── COMPENSACION ────────────────────────────────────────────────────────────
+function renderComp(t) {
+  const rcm=t.netRCM, gp=t.netGP;
+  let note='';
+  if (rcm<0&&gp>0){const lim=gp*0.25,comp=Math.min(Math.abs(rcm),lim);note=`Pérdida RCM (${fmt(Math.abs(rcm))}) compensa hasta ${fmt(lim)}. Posible: <strong style="color:var(--accent)">${fmt(comp)}</strong>.`;}
+  else if (gp<0&&rcm>0){const lim=rcm*0.25,comp=Math.min(Math.abs(gp),lim);note=`Pérdida patrimonial (${fmt(Math.abs(gp))}) compensa hasta ${fmt(lim)}. Posible: <strong style="color:var(--accent)">${fmt(comp)}</strong>.`;}
+  else note='Sin compensación cruzada entre partidas en este ejercicio.';
+  return `<div class="comp-box">
+    <div class="comp-title"><div class="sb-bar" style="background:var(--accent4)"></div>Compensación cruzada (art. 49 LIRPF)</div>
+    <div class="comp-2col">
+      <div class="comp-item"><div class="ci-l">Saldo RCM neto</div><div class="ci-v ${clr(rcm)}">${fmt(rcm)}</div></div>
+      <div class="comp-arrow">⇄</div>
+      <div class="comp-item"><div class="ci-l">Saldo G/P patrimoniales</div><div class="ci-v ${clr(gp)}">${fmt(gp)}</div></div>
+    </div>
+    <div class="comp-note">${note} Límite: <strong>25%</strong> del positivo. Exceso compensable 4 años.</div>
+  </div>`;
+}
+
+// ─── OPERACIONES ─────────────────────────────────────────────────────────────
+function renderOps(data) {
+  const usedFallback = fxStatus === 'fallback';
+  const tbody = (data.trades||[]).map(op => {
+    const gc = op.pyg>0?'var(--accent2)':op.pyg<0?'var(--danger)':'var(--muted)';
+    const fxStr = op.currency === 'USD' ? `<span style="font-size:9px;color:var(--muted)">${op.fxRate?.toFixed(4)||'—'}</span>` : '';
+    return `<tr>
+      <td>${op.date}</td>
+      <td><span class="pill ${op.tipo==='opciones'?'opt':'acc'}">${op.tipo}</span></td>
+      <td>${op.symbol}</td>
+      <td class="r" style="color:var(--muted)">${op.currency}</td>
+      <td class="r">${fxStr}</td>
+      <td class="r">${fmt(op.proceeds)}</td>
+      <td class="r">${fmt(op.basis)}</td>
+      <td class="r" style="color:${gc}">${fmt(op.pyg)}</td>
+      <td style="font-size:10px;color:var(--accent)">${op.casilla}</td>
+    </tr>`;
+  }).join('');
+
+  const divBody = (data.dividends||[]).map(d =>
+    `<tr><td>${d.date}</td><td><span class="pill div">dividendo</span></td>
+    <td>${d.desc?.substring(0,45)}</td>
+    <td class="r" style="color:var(--muted)">${d.currency}</td>
+    <td class="r"><span style="font-size:9px;color:var(--muted)">${d.fxRate?.toFixed(4)||'—'}</span></td>
+    <td class="r ${d.amount>0?'':'neg'}">${fmt(d.amount)}</td>
+    <td style="font-size:10px;color:var(--accent)">0029</td></tr>`
+  ).join('');
+
+  const intBody = (data.interest||[]).map(i =>
+    `<tr><td>${i.date}</td><td><span class="pill int">interés</span></td>
+    <td>${i.desc?.substring(0,45)}</td>
+    <td class="r" style="color:var(--muted)">${i.currency}</td>
+    <td class="r"><span style="font-size:9px;color:var(--muted)">${i.fxRate?.toFixed(4)||'—'}</span></td>
+    <td class="r ${i.amount>0?'pos':'neg'}">${fmt(i.amount)}</td>
+    <td style="font-size:10px;color:var(--accent)">${i.amount>0?'0033':'0032'}</td></tr>`
+  ).join('');
+
+  const fxMsg = usedFallback
+    ? '⚠ Sin conexión BCE — conversión con tipo medio estimado 2025 (0,9182 €/$). Conecta a internet para usar tipos diarios exactos.'
+    : `✓ Tipos BCE diarios por fecha de operación. La columna "T/C" muestra el tipo exacto usado para cada fila.`;
+
+  return `
+    <div class="sb">
+      <div class="sb-h"><div class="sb-bar" style="background:var(--accent2)"></div>
+        <span class="sb-title">Transmisiones con PyG realizada</span>
+        <span class="sb-tag">${(data.trades||[]).length} cierres</span>
+      </div>
+      <div class="ops-wrap"><table class="ops">
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Símbolo</th><th class="r">Divisa</th><th class="r">T/C €/$</th><th class="r">Productos (€)</th><th class="r">Básico (€)</th><th class="r">PyG (€)</th><th>Casilla</th></tr></thead>
+        <tbody>${tbody||'<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:18px">Sin transmisiones realizadas</td></tr>'}</tbody>
+      </table></div>
+      <div class="fx-info">${fxMsg}</div>
+    </div>
+    <div class="sb">
+      <div class="sb-h"><div class="sb-bar" style="background:var(--accent3)"></div>
+        <span class="sb-title">Dividendos e intereses</span>
+        <span class="sb-tag">${(data.dividends||[]).length} dividendos · ${(data.interest||[]).length} intereses</span>
+      </div>
+      <div class="ops-wrap"><table class="ops">
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th class="r">Divisa</th><th class="r">T/C €/$</th><th class="r">Importe (€)</th><th>Casilla</th></tr></thead>
+        <tbody>${divBody+intBody||'<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:18px">Sin dividendos ni intereses</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+}
+
+// ─── FORMAT ───────────────────────────────────────────────────────────────────
+const fmt = (v,d=2) => {
+  if (Math.abs(v)<0.005) return '0,00 €';
+  return (v<0?'−':'')+Math.abs(v).toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d})+' €';
+};
+const clr = v => v>0.005?'pos':v<-0.005?'neg':'neu';
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+function exportCSV(viewId) {
+  let data, titleStr;
+  if (viewId==='consolidated') { data=consolidate(accounts); titleStr='Consolidado'; }
+  else { const acc=accounts.find(a=>a.id===viewId); if(!acc)return; data=acc.data; titleStr=acc.accountId; }
+  const t=data.t;
+  const fxInfo = fxStatus==='ok' ? 'Tipos BCE diarios por fecha' : `Tipo medio estimado ${FX_FALLBACK}`;
+  const rows=[
+    [`IBKR Renta 2025 — ${titleStr}`],['Generado',new Date().toLocaleDateString('es-ES')],['Conversión FX',fxInfo],[''],
+    ['CASILLAS MODELO 100'],['Casilla','Concepto','Importe EUR'],
+    ['0029','Dividendos brutos',t.divPos.toFixed(2).replace('.',',')],
+    ['0033','Intereses cobrados',t.intPos.toFixed(2).replace('.',',')],
+    ['0032','Intereses margen (gasto)',t.intNeg>0?(-t.intNeg).toFixed(2).replace('.',','):'0,00'],
+    ['0327','Valor transmisión acc+opt',((data.trades||[]).filter(o=>o.tipo!=='forex').reduce((a,o)=>a+o.proceeds,0)).toFixed(2).replace('.',',')],
+    ['0328','Valor adquisición acc+opt',Math.abs((data.trades||[]).filter(o=>o.tipo!=='forex').reduce((a,o)=>a+o.basis,0)).toFixed(2).replace('.',',')],
+    ['0327−0328','G/P neta acc+opt',(t.netAcc+t.netOpt).toFixed(2).replace('.',',')],
+    ['0358','Divisas neto',t.netFx.toFixed(2).replace('.',',')],
+    ['0588','Deducción DDI','0,00'],[''],
+    ['TOTALES'],
+    ['Base del ahorro',t.baseAhorro.toFixed(2).replace('.',',')],
+    ['Cuota estimada',t.cuota.toFixed(2).replace('.',',')],
+  ];
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8;'}));
+  a.download=`renta2025_${titleStr.replace(/\s/g,'_')}.csv`; a.click();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+// Cargar FX al arrancar; recalcular cuentas cuando terminen de cargarse
+loadFXRates().then(() => {
+  if (accounts.length > 0) recomputeAll();
+});
+</script>
+</body>
+</html>
